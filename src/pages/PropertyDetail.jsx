@@ -9,16 +9,26 @@ const PropertyDetail = () => {
 
   const fetchProperty = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('properties')
-      .select('*')
-      .eq('id', id)
-      .single();
 
-    if (error) {
-      console.error(error);
-    } else {
-      setProperty(data);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session.access_token;
+
+      const response = await fetch(`/api/properties?id=${id}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setProperty(data[0]);
+      } else {
+        console.error('Error fetching property:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error fetching property:', error);
     }
 
     setLoading(false);
@@ -29,18 +39,29 @@ const PropertyDetail = () => {
   }, [id]);
 
   const handleRequestAppointment = async () => {
-    const { error } = await supabase
-      .from('appointments')
-      .insert({
-        property_id: id,
-        investor_id: supabase.auth.user().id,
-        status: 'pending',
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session.access_token;
+
+      const response = await fetch('/api/appointments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          property_id: id
+        })
       });
 
-    if (error) {
-      console.error(error);
-    } else {
-      alert('Appointment request sent!');
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error requesting appointment:', errorData.error);
+      } else {
+        alert('Appointment request sent!');
+      }
+    } catch (error) {
+      console.error('Error requesting appointment:', error);
     }
   };
 
@@ -53,7 +74,7 @@ const PropertyDetail = () => {
   }
 
   return (
-    <div className="p-4 max-w-2xl mx-auto">
+    <div className="p-4 max-w-2xl mx-auto h-full">
       <h1 className="text-2xl font-bold mb-4">{property.title}</h1>
       <p className="mb-4">{property.description}</p>
       <button

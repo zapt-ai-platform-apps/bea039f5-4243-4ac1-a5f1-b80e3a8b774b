@@ -8,15 +8,26 @@ const OwnerDashboard = () => {
 
   const fetchProperties = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('properties')
-      .select('*')
-      .eq('owner_id', supabase.auth.user().id);
 
-    if (error) {
-      console.error(error);
-    } else {
-      setProperties(data);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session.access_token;
+
+      const response = await fetch('/api/properties', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setProperties(data);
+      } else {
+        console.error('Error fetching properties:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error fetching properties:', error);
     }
 
     setLoading(false);
@@ -27,7 +38,7 @@ const OwnerDashboard = () => {
   }, []);
 
   return (
-    <div className="p-4">
+    <div className="p-4 h-full">
       <h1 className="text-2xl font-bold mb-4">Owner Dashboard</h1>
       <Link to="/owner/add-property" className="bg-blue-500 text-white px-4 py-2 rounded cursor-pointer">
         Add New Property

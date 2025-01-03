@@ -9,14 +9,26 @@ const InvestorDashboard = () => {
 
   const fetchProperties = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('properties')
-      .select('*');
 
-    if (error) {
-      console.error(error);
-    } else {
-      setProperties(data);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session.access_token;
+
+      const response = await fetch('/api/properties', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setProperties(data);
+      } else {
+        console.error('Error fetching properties:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error fetching properties:', error);
     }
 
     setLoading(false);
@@ -32,7 +44,7 @@ const InvestorDashboard = () => {
   );
 
   return (
-    <div className="p-4">
+    <div className="p-4 h-full">
       <h1 className="text-2xl font-bold mb-4">Investor Dashboard</h1>
       <div>
         <input

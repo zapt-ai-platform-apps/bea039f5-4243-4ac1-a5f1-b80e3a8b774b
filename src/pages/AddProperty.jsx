@@ -1,53 +1,24 @@
-import React, { useState } from 'react';
-import { supabase } from '../supabaseClient';
+import React, { useState, useContext } from 'react';
+import { AuthContext } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { handleAddProperty } from '../services/propertyService';
 
 const AddProperty = () => {
+  const { user } = useContext(AuthContext);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [documents, setDocuments] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleAddProperty = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-
-    let documentUrl = '';
-    if (documents) {
-      const { data, error: uploadError } = await supabase.storage
-        .from('documents')
-        .upload(`public/${documents.name}`, documents);
-
-      if (uploadError) {
-        console.error(uploadError);
-      } else {
-        documentUrl = data.path;
-      }
-    }
-
-    const { data, error } = await supabase
-      .from('properties')
-      .insert({
-        owner_id: supabase.auth.user().id,
-        title,
-        description,
-        document_url: documentUrl,
-      });
-
-    if (error) {
-      console.error(error);
-    } else {
-      navigate('/owner/dashboard');
-    }
-
-    setLoading(false);
+  const onSubmit = async (e) => {
+    await handleAddProperty(e, { title, description, documents, setLoading, navigate });
   };
 
   return (
-    <div className="p-4 max-w-lg mx-auto">
+    <div className="p-4 max-w-lg mx-auto h-full">
       <h1 className="text-2xl font-bold mb-4">Add New Property</h1>
-      <form onSubmit={handleAddProperty} className="space-y-4">
+      <form onSubmit={onSubmit} className="space-y-4">
         <div>
           <label className="block mb-1">Title</label>
           <input
